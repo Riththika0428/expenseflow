@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+:root {
+  /* Primary */
+  --primary: #5145CD;
+  --primary-hover: #4035B5;
+  --primary-light: #EEF0FF;
+
+  /* Backgrounds */
+  --background: #F7F8FC;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+
+  /* Text */
+  --foreground: #1E2433;
+  --text-secondary: #737B8C;
+  --text-muted: #A0A7B4;
+
+  /* Borders */
+  --border: #E8EAF0;
+  --divider: #EEF0F4;
+
+  /* Semantic */
+  --income: #16A36A;
+  --expense: #E05252;
+  --warning: #E9A23B;
+  --info: #3978D5;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.10);
+}
+
+/* Dark Theme */
+
+.dark {
+  --primary: #8175F5;
+  --primary-hover: #948BFF;
+  --primary-light: #29244A;
+
+  --background: #10131D;
+  --surface: #191E2B;
+  --surface-elevated: #202738;
+
+  --foreground: #F3F4F8;
+  --text-secondary: #A6AEC0;
+  --text-muted: #778197;
+
+  --border: #2B3243;
+  --divider: #252C3B;
+
+  --income: #38C98B;
+  --expense: #F07878;
+  --warning: #F2B95E;
+  --info: #69A2F0;
+}
+
+/* Global Styles */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, sans-serif;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  font-family: var(--font-inter), sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+}
