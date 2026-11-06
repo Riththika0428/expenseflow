@@ -12,6 +12,9 @@ import {
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import StatCard from "@/components/shared/StatCard";
 import { formatCurrency } from "@/lib/formatCurrency";
+import MonthlyOverviewChart from "@/features/dashboard/components/MonthlyOverviewChart";
+import ExpenseCategoryChart from "@/features/dashboard/components/ExpenseCategoryChart";
+import RecentTransactions from "@/features/dashboard/components/RecentTransactions";
 
 // Temporary sample data
 const dashboardData = {
@@ -103,6 +106,17 @@ export default function DashboardPage() {
               Your financial summary for this month.
             </p>
           </div>
+
+          {/* Charts Section */}
+            <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            <MonthlyOverviewChart />
+             <ExpenseCategoryChart />
+           </section>
+
+           {/* Recent Transactions Section */}
+          <section>
+        <RecentTransactions />
+         </section>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2
             xl:grid-cols-4">
