@@ -7,9 +7,8 @@ export default function ThemeProvider({ children }) {
     <NextThemesProvider
       attribute="class"
       defaultTheme="light"
-      enableSystem={false}
-      storageKey="expenseflow-theme"
-      disableTransitionOnChange={false}
+      enableSystem={true}
+      disableTransitionOnChange
     >
       {children}
     </NextThemesProvider>
