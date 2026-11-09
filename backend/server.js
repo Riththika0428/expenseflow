@@ -1,39 +1,21 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
+import "dotenv/config";
 
+import app from "./app.js";
 import connectDB from "./config/db.js";
 
-dotenv.config();
-
-const app = express();
-
-// Middleware
-app.use(cors({
-  origin: process.env.CLIENT_URL
-}));
-
-app.use(express.json());
-
-// Test API
-app.get("/", (req, res) => {
-  res.json({
-    message: "Welcome to ExpenseFlow API"
-  });
-});
-
-// Start server
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    // Connect to MongoDB first
     await connectDB();
 
+    // Start Express server
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`ExpenseFlow server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Server startup failed:", error.message);
+    console.error("Failed to start ExpenseFlow:", error.message);
     process.exit(1);
   }
 };
