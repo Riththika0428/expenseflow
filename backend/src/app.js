@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/categories", categoryRoutes);
 
 // Health check API
 app.get("/api/health", (req, res) => {
