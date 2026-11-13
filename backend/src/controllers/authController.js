@@ -1,10 +1,35 @@
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import generateToken from "../utils/generateToken.js";
 
-// Register a new user
-export const registerUser = async (req, res) => {
+const COOKIE_NAME = "expenseflow_token";
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/",
+  maxAge: 24 * 60 * 60 * 1000,
+};
+
+// Generate JWT
+const generateToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is not configured");
+  }
+
+  return jwt.sign(
+    { id: userId },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || "1d",
+    }
+  );
+};
+
+// Register user
+export const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -16,7 +41,7 @@ export const registerUser = async (req, res) => {
     if (password.length < 8) {
       return res.status(400).json({
         success: false,
-        message: "Password must contain at least 8 characters",
+        message: "Password must be at least 8 characters",
       });
     }
 
@@ -34,20 +59,24 @@ export const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
-      name: name.trim(),
+      name,
       email: normalizedEmail,
       password,
+      phone,
     });
 
     const token = generateToken(user._id);
 
+    res.cookie(COOKIE_NAME, token, cookieOptions);
+
     return res.status(201).json({
       success: true,
       message: "Account created successfully",
-      token,
       user,
     });
   } catch (error) {
+    console.error("Registration error:", error.message);
+
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
@@ -64,13 +93,13 @@ export const registerUser = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Unable to register user",
+      message: "Registration failed. Please try again.",
     });
   }
 };
 
-// Login an existing user
-export const loginUser = async (req, res) => {
+// Login user
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -81,34 +110,31 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-
     const user = await User.findOne({
-      email: normalizedEmail,
+      email: email.trim().toLowerCase(),
     }).select("+password");
 
-    if (!user || !user.isActive) {
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
       });
     }
 
-    const isPasswordValid = await user.comparePassword(password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({
+    if (!user.isActive) {
+      return res.status(403).json({
         success: false,
-        message: "Invalid email or password",
+        message: "This account is inactive",
       });
     }
 
     const token = generateToken(user._id);
 
+    res.cookie(COOKIE_NAME, token, cookieOptions);
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      token,
       user,
     });
   } catch (error) {
@@ -116,12 +142,27 @@ export const loginUser = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Unable to login",
+      message: "Login failed. Please try again.",
     });
   }
 };
 
-// Get authenticated user's profile
+// Logout user
+export const logout = (req, res) => {
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Logout successful",
+  });
+};
+
+// Get authenticated user
 export const getMe = async (req, res) => {
   return res.status(200).json({
     success: true,
