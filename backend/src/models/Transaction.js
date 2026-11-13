@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const transactionSchema = new mongoose.Schema(
@@ -16,34 +17,47 @@ const transactionSchema = new mongoose.Schema(
       maxlength: 100,
     },
 
-    amount: {
-      type: Number,
-      required: [true, "Amount is required"],
-      min: [0.01, "Amount must be greater than zero"],
-    },
-
     type: {
       type: String,
       enum: ["income", "expense"],
       required: true,
     },
 
+    amount: {
+      type: Number,
+      required: true,
+      min: [0.01, "Amount must be greater than zero"],
+    },
+
     category: {
       type: String,
-      required: [true, "Category is required"],
+      required: true,
       trim: true,
     },
 
     date: {
       type: Date,
       required: true,
+      default: Date.now,
     },
 
-    note: {
+    description: {
       type: String,
       trim: true,
       maxlength: 500,
       default: "",
+    },
+
+    paymentMethod: {
+      type: String,
+      enum: [
+        "cash",
+        "card",
+        "bank_transfer",
+        "online",
+        "other",
+      ],
+      default: "other",
     },
   },
   {
@@ -51,7 +65,11 @@ const transactionSchema = new mongoose.Schema(
   }
 );
 
-transactionSchema.index({ user: 1, date: -1 });
+// Efficient user transaction history queries
+transactionSchema.index({
+  user: 1,
+  date: -1,
+});
 
 const Transaction = mongoose.model(
   "Transaction",

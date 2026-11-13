@@ -1,37 +1,57 @@
+
 import mongoose from "mongoose";
 import Transaction from "../models/Transaction.js";
 
-// Create transaction
+// CREATE TRANSACTION
 export const createTransaction = async (req, res) => {
   try {
-    const { title, amount, type, category, date, note } = req.body;
+    const {
+      title,
+      type,
+      amount,
+      category,
+      date,
+      description,
+      paymentMethod,
+    } = req.body;
 
-    if (!title || amount === undefined || !type || !category || !date) {
+    if (!title || !type || !amount || !category) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required transaction fields",
+        message: "Please provide all required fields",
       });
     }
 
-    if (
-      typeof amount !== "number" ||
-      !Number.isFinite(amount) ||
-      amount <= 0
-    ) {
+    if (!["income", "expense"].includes(type)) {
       return res.status(400).json({
         success: false,
-        message: "Amount must be a positive number",
+        message: "Invalid transaction type",
+      });
+    }
+
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Amount must be greater than zero",
+      });
+    }
+
+    if (date && Number.isNaN(Date.parse(date))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid transaction date",
       });
     }
 
     const transaction = await Transaction.create({
       user: req.user._id,
       title,
-      amount,
       type,
+      amount: Number(amount),
       category,
-      date,
-      note,
+      date: date || Date.now(),
+      description,
+      paymentMethod,
     });
 
     return res.status(201).json({
@@ -39,28 +59,32 @@ export const createTransaction = async (req, res) => {
       message: "Transaction created successfully",
       transaction,
     });
-  } catch (error) {
-    if (error.name === "ValidationError" || error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
 
-    console.error("Create transaction error:", error.message);
+  } catch (error) {
+    console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to create transaction",
+      message: "Failed to create transaction",
     });
   }
 };
 
-// Get all transactions with optional filters
+
+// GET ALL TRANSACTIONS
 export const getTransactions = async (req, res) => {
   try {
-    const { type, category, startDate, endDate, search } = req.query;
+    const {
+      type,
+      category,
+      search,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 10,
+    } = req.query;
 
+    // Always restrict queries to the logged-in user
     const filter = {
       user: req.user._id,
     };
@@ -70,12 +94,25 @@ export const getTransactions = async (req, res) => {
     } else if (type) {
       return res.status(400).json({
         success: false,
-        message: "Invalid transaction type",
+        message: "Invalid transaction type filter",
       });
     }
 
     if (category) {
       filter.category = category;
+    }
+
+    if (search) {
+      const safeSearch = search.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+      );
+
+      filter.$or = [
+        { title: { $regex: safeSearch, $options: "i" } },
+        { category: { $regex: safeSearch, $options: "i" } },
+        { description: { $regex: safeSearch, $options: "i" } },
+      ];
     }
 
     if (startDate || endDate) {
@@ -104,42 +141,55 @@ export const getTransactions = async (req, res) => {
           });
         }
 
+        // Include the entire end date
         end.setUTCHours(23, 59, 59, 999);
         filter.date.$lte = end;
       }
     }
 
-    if (search) {
-      filter.title = {
-        $regex: search,
-        $options: "i",
-      };
-    }
+    const currentPage = Math.max(1, Number(page) || 1);
+    const perPage = Math.min(
+      100,
+      Math.max(1, Number(limit) || 10)
+    );
 
-    const transactions = await Transaction.find(filter).sort({
-      date: -1,
-      createdAt: -1,
-    });
+    const skip = (currentPage - 1) * perPage;
+
+    const [transactions, total] = await Promise.all([
+      Transaction.find(filter)
+        .sort({ date: -1 })
+        .skip(skip)
+        .limit(perPage),
+
+      Transaction.countDocuments(filter),
+    ]);
 
     return res.status(200).json({
       success: true,
       count: transactions.length,
+      total,
+      page: currentPage,
+      totalPages: Math.ceil(total / perPage),
       transactions,
     });
+
   } catch (error) {
-    console.error("Get transactions error:", error.message);
+    console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to retrieve transactions",
+      message: "Failed to fetch transactions",
     });
   }
 };
 
-// Get single transaction
+
+// GET SINGLE TRANSACTION
 export const getTransactionById = async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid transaction ID",
@@ -147,7 +197,7 @@ export const getTransactionById = async (req, res) => {
     }
 
     const transaction = await Transaction.findOne({
-      _id: req.params.id,
+      _id: id,
       user: req.user._id,
     });
 
@@ -162,20 +212,24 @@ export const getTransactionById = async (req, res) => {
       success: true,
       transaction,
     });
+
   } catch (error) {
-    console.error("Get transaction error:", error.message);
+    console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to retrieve transaction",
+      message: "Failed to fetch transaction",
     });
   }
 };
 
-// Update transaction
+
+// UPDATE TRANSACTION
 export const updateTransaction = async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid transaction ID",
@@ -184,11 +238,12 @@ export const updateTransaction = async (req, res) => {
 
     const allowedFields = [
       "title",
-      "amount",
       "type",
+      "amount",
       "category",
       "date",
-      "note",
+      "description",
+      "paymentMethod",
     ];
 
     const updates = {};
@@ -199,31 +254,38 @@ export const updateTransaction = async (req, res) => {
       }
     }
 
-    if (
-      updates.amount !== undefined &&
-      (typeof updates.amount !== "number" ||
-        !Number.isFinite(updates.amount) ||
-        updates.amount <= 0)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Amount must be a positive number",
-      });
-    }
-
-    if (
-      updates.type !== undefined &&
-      !["income", "expense"].includes(updates.type)
-    ) {
+    if (updates.type && !["income", "expense"].includes(updates.type)) {
       return res.status(400).json({
         success: false,
         message: "Invalid transaction type",
       });
     }
 
+    if (
+      updates.amount !== undefined &&
+      (!Number.isFinite(Number(updates.amount)) ||
+        Number(updates.amount) <= 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Amount must be greater than zero",
+      });
+    }
+
+    if (updates.amount !== undefined) {
+      updates.amount = Number(updates.amount);
+    }
+
+    if (updates.date && Number.isNaN(Date.parse(updates.date))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid transaction date",
+      });
+    }
+
     const transaction = await Transaction.findOneAndUpdate(
       {
-        _id: req.params.id,
+        _id: id,
         user: req.user._id,
       },
       updates,
@@ -245,27 +307,24 @@ export const updateTransaction = async (req, res) => {
       message: "Transaction updated successfully",
       transaction,
     });
-  } catch (error) {
-    if (error.name === "ValidationError" || error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
 
-    console.error("Update transaction error:", error.message);
+  } catch (error) {
+    console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to update transaction",
+      message: "Failed to update transaction",
     });
   }
 };
 
-// Delete transaction
+
+// DELETE TRANSACTION
 export const deleteTransaction = async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid transaction ID",
@@ -273,7 +332,7 @@ export const deleteTransaction = async (req, res) => {
     }
 
     const transaction = await Transaction.findOneAndDelete({
-      _id: req.params.id,
+      _id: id,
       user: req.user._id,
     });
 
@@ -288,12 +347,13 @@ export const deleteTransaction = async (req, res) => {
       success: true,
       message: "Transaction deleted successfully",
     });
+
   } catch (error) {
-    console.error("Delete transaction error:", error.message);
+    console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to delete transaction",
+      message: "Failed to delete transaction",
     });
   }
 };

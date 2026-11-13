@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import authRoutes from "./routes/authRoutes.js";
+import transactionRoutes from "./routes/transactionRoutes.js";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -28,5 +30,6 @@ app.get("/api/health", (req, res) => {
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
+app.use("/api/transactions", transactionRoutes);
 
 export default app;
