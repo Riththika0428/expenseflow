@@ -1,28 +1,28 @@
+
 import express from "express";
+
+import { protect } from "../middleware/authMiddleware.js";
 
 import {
   createCategory,
   getCategories,
-  getCategoryById,
   updateCategory,
   deleteCategory,
 } from "../controllers/categoryController.js";
 
-import protect from "../middleware/authMiddleware.js";
-
 const router = express.Router();
 
+// All category endpoints require authentication
 router.use(protect);
 
 router
   .route("/")
-  .post(createCategory)
-  .get(getCategories);
+  .get(getCategories)
+  .post(createCategory);
 
 router
   .route("/:id")
-  .get(getCategoryById)
-  .put(updateCategory)
+  .patch(updateCategory)
   .delete(deleteCategory);
 
 export default router;

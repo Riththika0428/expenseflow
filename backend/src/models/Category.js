@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const categorySchema = new mongoose.Schema(
@@ -24,13 +25,12 @@ const categorySchema = new mongoose.Schema(
 
     icon: {
       type: String,
-      default: "Circle",
+      default: "wallet",
     },
 
     color: {
       type: String,
-      default: "#5145CD",
-      match: /^#[0-9A-Fa-f]{6}$/,
+      default: "#64748b",
     },
 
     description: {
@@ -50,12 +50,15 @@ const categorySchema = new mongoose.Schema(
   }
 );
 
-// A user cannot create duplicate category names of the same type.
+// Prevent duplicate category names for the same user and type
 categorySchema.index(
   { user: 1, name: 1, type: 1 },
   { unique: true }
 );
 
-const Category = mongoose.model("Category", categorySchema);
+const Category = mongoose.model(
+  "Category",
+  categorySchema
+);
 
 export default Category;

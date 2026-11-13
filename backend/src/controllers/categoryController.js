@@ -1,8 +1,9 @@
+
 import mongoose from "mongoose";
 import Category from "../models/Category.js";
-import Transaction from "../models/Transaction.js";
+import { defaultCategories } from "../utils/defaultCategories.js";
 
-// Create category
+// CREATE CATEGORY
 export const createCategory = async (req, res) => {
   try {
     const {
@@ -13,7 +14,7 @@ export const createCategory = async (req, res) => {
       description,
     } = req.body;
 
-    if (!name?.trim() || !type) {
+    if (!name || !type) {
       return res.status(400).json({
         success: false,
         message: "Category name and type are required",
@@ -27,13 +28,36 @@ export const createCategory = async (req, res) => {
       });
     }
 
+    const normalizedName = name.trim();
+
+    if (!normalizedName) {
+      return res.status(400).json({
+        success: false,
+        message: "Category name cannot be empty",
+      });
+    }
+
+    const existingCategory = await Category.findOne({
+      user: req.user._id,
+      name: normalizedName,
+      type,
+    });
+
+    if (existingCategory) {
+      return res.status(409).json({
+        success: false,
+        message: "This category already exists",
+      });
+    }
+
     const category = await Category.create({
       user: req.user._id,
-      name: name.trim(),
+      name: normalizedName,
       type,
       icon,
       color,
       description,
+      isDefault: false,
     });
 
     return res.status(201).json({
@@ -41,7 +65,10 @@ export const createCategory = async (req, res) => {
       message: "Category created successfully",
       category,
     });
+
   } catch (error) {
+    console.error("Create category:", error);
+
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
@@ -49,23 +76,15 @@ export const createCategory = async (req, res) => {
       });
     }
 
-    if (error.name === "ValidationError") {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    console.error("Create category error:", error.message);
-
     return res.status(500).json({
       success: false,
-      message: "Unable to create category",
+      message: "Failed to create category",
     });
   }
 };
 
-// Get all categories
+
+// GET ALL CATEGORIES
 export const getCategories = async (req, res) => {
   try {
     const { type, search } = req.query;
@@ -86,72 +105,43 @@ export const getCategories = async (req, res) => {
     }
 
     if (search) {
+      const safeSearch = search.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+      );
+
       filter.name = {
-        $regex: search,
+        $regex: safeSearch,
         $options: "i",
       };
     }
 
-    const categories = await Category.find(filter).sort({
-      type: 1,
-      name: 1,
-    });
+    const categories = await Category.find(filter)
+      .sort({ type: 1, name: 1 });
 
     return res.status(200).json({
       success: true,
       count: categories.length,
       categories,
     });
+
   } catch (error) {
-    console.error("Get categories error:", error.message);
+    console.error("Get categories:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to retrieve categories",
+      message: "Failed to fetch categories",
     });
   }
 };
 
-// Get single category
-export const getCategoryById = async (req, res) => {
-  try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid category ID",
-      });
-    }
 
-    const category = await Category.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    });
-
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Category not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      category,
-    });
-  } catch (error) {
-    console.error("Get category error:", error.message);
-
-    return res.status(500).json({
-      success: false,
-      message: "Unable to retrieve category",
-    });
-  }
-};
-
-// Update category
+// UPDATE CATEGORY
 export const updateCategory = async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid category ID",
@@ -160,7 +150,6 @@ export const updateCategory = async (req, res) => {
 
     const allowedFields = [
       "name",
-      "type",
       "icon",
       "color",
       "description",
@@ -174,33 +163,20 @@ export const updateCategory = async (req, res) => {
       }
     }
 
-    if (
-      updates.name !== undefined &&
-      (typeof updates.name !== "string" || !updates.name.trim())
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Category name cannot be empty",
-      });
-    }
-
-    if (updates.name) {
+    if (updates.name !== undefined) {
       updates.name = updates.name.trim();
-    }
 
-    if (
-      updates.type !== undefined &&
-      !["income", "expense"].includes(updates.type)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid category type",
-      });
+      if (!updates.name) {
+        return res.status(400).json({
+          success: false,
+          message: "Category name cannot be empty",
+        });
+      }
     }
 
     const category = await Category.findOneAndUpdate(
       {
-        _id: req.params.id,
+        _id: id,
         user: req.user._id,
         isDefault: false,
       },
@@ -214,7 +190,7 @@ export const updateCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: "Category not found or cannot be modified",
+        message: "Custom category not found",
       });
     }
 
@@ -223,83 +199,75 @@ export const updateCategory = async (req, res) => {
       message: "Category updated successfully",
       category,
     });
+
   } catch (error) {
+    console.error("Update category:", error);
+
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: "This category already exists",
+        message: "This category name already exists",
       });
     }
-
-    if (error.name === "ValidationError") {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    console.error("Update category error:", error.message);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to update category",
+      message: "Failed to update category",
     });
   }
 };
 
-// Delete category
+
+// DELETE CATEGORY
 export const deleteCategory = async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid category ID",
       });
     }
 
-    const category = await Category.findOne({
-      _id: req.params.id,
+    const category = await Category.findOneAndDelete({
+      _id: id,
       user: req.user._id,
+      isDefault: false,
     });
 
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: "Category not found",
+        message: "Custom category not found",
       });
     }
-
-    if (category.isDefault) {
-      return res.status(403).json({
-        success: false,
-        message: "Default categories cannot be deleted",
-      });
-    }
-
-    const transactionExists = await Transaction.exists({
-      user: req.user._id,
-      category: category.name,
-    });
-
-    if (transactionExists) {
-      return res.status(409).json({
-        success: false,
-        message: "This category is being used by transactions",
-      });
-    }
-
-    await category.deleteOne();
 
     return res.status(200).json({
       success: true,
       message: "Category deleted successfully",
     });
+
   } catch (error) {
-    console.error("Delete category error:", error.message);
+    console.error("Delete category:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to delete category",
+      message: "Failed to delete category",
     });
   }
+};
+
+
+// CREATE DEFAULT CATEGORIES
+export const createDefaultCategories = async (userId) => {
+  const categories = defaultCategories.map((category) => ({
+    ...category,
+    user: userId,
+    isDefault: true,
+  }));
+
+  await Category.insertMany(categories, {
+    ordered: false,
+  });
 };

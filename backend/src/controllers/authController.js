@@ -1,6 +1,10 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
+import {
+  createDefaultCategories,
+} from "../controllers/categoryController.js";
+
 const COOKIE_NAME = "expenseflow_token";
 
 const cookieOptions = {
@@ -64,7 +68,8 @@ export const register = async (req, res) => {
       password,
       phone,
     });
-
+   await createDefaultCategories(user._id);
+   
     const token = generateToken(user._id);
 
     res.cookie(COOKIE_NAME, token, cookieOptions);
