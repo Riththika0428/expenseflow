@@ -1,4 +1,4 @@
-const Transaction = require("../models/Transaction");
+import Transaction from "../models/Transaction.js";
 
 const getAnalytics = async (req, res) => {
   try {
@@ -205,4 +205,4 @@ const getAnalytics = async (req, res) => {
   }
 };
 
-module.exports = { getAnalytics };
+export { getAnalytics };
