@@ -151,8 +151,8 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          © {new Date().getFullYear()} ExpenseFlow. All rights reserved.
-        </p>
+             © 2026 ExpenseFlow. All rights reserved.
+      </p>
       </div>
     </main>
   );
