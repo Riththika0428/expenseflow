@@ -3,6 +3,7 @@ import "./globals.css";
 
 import ThemeProvider from "@/context/ThemeProvider";
 import { Toaster } from "sonner";
+import { AuthProvider } from "../context/AuthContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,6 +25,9 @@ export default function RootLayout({ children }) {
           {children}
           <Toaster position="top-right" richColors />
         </ThemeProvider>
+        <AuthProvider>
+    {children}
+  </AuthProvider>
       </body>
     </html>
   );
