@@ -52,12 +52,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try {
-      await logoutUser();
-    } finally {
-      setUser(null);
-    }
-  };
+  try {
+    await logoutUser();
+  } finally {
+    setUser(null);
+  }
+};
 
   return (
     <AuthContext.Provider

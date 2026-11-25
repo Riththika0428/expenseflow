@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import GuestRoute from "@/components/GuestRoute";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -62,6 +63,7 @@ export default function RegisterPage() {
   };
 
   return (
+    <GuestRoute>
     <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-10">
 
       <div className="w-full max-w-md">
@@ -221,5 +223,6 @@ export default function RegisterPage() {
       </div>
 
     </main>
+    </GuestRoute>
   );
 }

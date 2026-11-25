@@ -15,6 +15,7 @@ import { formatCurrency } from "@/lib/formatCurrency";
 import MonthlyOverviewChart from "@/features/dashboard/components/MonthlyOverviewChart";
 import ExpenseCategoryChart from "@/features/dashboard/components/ExpenseCategoryChart";
 import RecentTransactions from "@/features/dashboard/components/RecentTransactions";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Temporary sample data
 const dashboardData = {
@@ -65,6 +66,7 @@ export default function DashboardPage() {
   ];
 
   return (
+    <ProtectedRoute>
     <DashboardLayout>
       <div className="space-y-8">
 
@@ -132,5 +134,6 @@ export default function DashboardPage() {
 
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   );
 }
