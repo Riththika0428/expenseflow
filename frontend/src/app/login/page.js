@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import GuestRoute from "@/components/GuestRoute";
+import GuestRoute from "@/components/auth/GuestRoute";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -164,5 +164,6 @@ export default function LoginPage() {
       </div>
     </main>
     </GuestRoute>
+    
   );
 }
